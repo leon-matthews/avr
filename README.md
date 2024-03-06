@@ -1,3 +1,3 @@
 # avr
 
-Bare-bones AVR programming
+Bare-bones AVR programming, no Arduino needed!
