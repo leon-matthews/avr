@@ -1,0 +1,87 @@
+from __future__ import print_function
+
+import json
+import os
+from pprint import pprint
+import sys
+
+
+# Guess file names from folder names
+parent_folder = os.path.basename(os.getcwd())
+project_name = parent_folder
+
+
+# Hardware configuration
+file_name = 'hardware.json'
+hardware = {
+    'mhz': 1,
+    'mcu': 'atmega328p',
+    'programmer': 'usbasp',
+}
+
+
+# Override defaults?
+try:
+    with open(file_name) as fp:
+        hardware.update(json.load(fp))
+except IOError:
+    message = "No '{}' configuration found. Defaults used."
+    print(message.format(file_name), file=sys.stderr)
+
+
+# Print hardware configuration
+message = "Program '{mcu}' running at {mhz:,}MHz using '{programmer}' ISP".format(**hardware)
+print("="*len(message))
+print(message)
+print("="*len(message))
+
+
+# Project variables
+config = Variables()
+config.Add('mcu', 'Microcontroller', hardware['mcu'])
+config.Add('hz', 'CPU frequency in Hz', int(hardware['mhz']*1e6))
+config.Add('programmer', 'ISP Programmer', hardware['programmer'])
+
+
+# Initialise build environment
+cflags = (
+    # Chip type, speed, and communication speed.
+    '-mmcu=${mcu} -DF_CPU=${hz}UL -DBAUD=9600UL -I. '
+    # Small code, debug info, C-standard, lots-o-warnings.
+    '-Os -g -std=gnu11 -Wall '
+    # Use short (8-bit) data types
+    '-funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums '
+    # Splits up object files per function
+    '-ffunction-sections -fdata-sections '
+)
+
+elf = Builder(action="avr-gcc -Wl,--gc-sections -I. -mmcu=${mcu} $SOURCE  -o $TARGET")
+hex = Builder(action="avr-objcopy -j .text -j .data -O ihex $SOURCE $TARGET")
+builders = {'elf': elf, 'hex': hex}
+
+env = Environment(
+    BUILDERS=builders,
+    CC='avr-gcc ',
+    CFLAGS=cflags,
+    ENV={'PATH': os.environ['PATH']},
+    variables = config,
+)
+
+
+# Build Targets
+main_c = project_name + '.c'
+main_o = project_name + '.o'
+main_elf = project_name + '.elf'
+main_hex = project_name + '.hex'
+env.Object(target=Glob('*.c'))
+env.elf(main_elf, main_o)
+env.hex(main_hex, main_elf)
+
+
+# Size
+Default('size')
+env.Command('size', main_elf, "avr-size $SOURCE")
+
+
+# Flash the thing!
+env.Command('flash', main_hex, "avrdude -c ${programmer} -p ${mcu} -U flash:w:$SOURCE")
