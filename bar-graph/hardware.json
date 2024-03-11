@@ -1,0 +1,5 @@
+{
+    "mhz": 1,
+    "mcu": "atmega168",
+    "programmer": "usbasp"
+}
