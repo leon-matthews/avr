@@ -1,0 +1,5 @@
+{
+    "mhz": 8,
+    "mcu": "atmega328p",
+    "programmer": "usbasp"
+}
