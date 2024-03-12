@@ -1,0 +1,8 @@
+Mac OS using Arduino UNO with homemade ISP shield
+
+# Upload firmware
+avrdude -c avrisp -P /dev/cu.wchusbserial620 -b 19200 -p attiny4313 -U flash:w:Candle0005.hex 
+
+# Set fuses
+# 8MHz clock, 0ms start-up delay, do NOT divide clock by 8
+avrdude -c avrisp -P /dev/cu.wchusbserial410 -b 19200 -p attiny4313 -U lfuse:w:0xC4:m
